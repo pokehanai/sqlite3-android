@@ -1,0 +1,113 @@
+diff -c /Users/pk-22120108/Documents/src/projects/android/sqlite3-android/build/sqlite3.c /Users/pk-22120108/Documents/src/projects/android/sqlite3-android/build/sqlite3.new.c
+*** /Users/pk-22120108/Documents/src/projects/android/sqlite3-android/build/sqlite3.c	2015-08-13 13:42:26.000000000 +0900
+--- /Users/pk-22120108/Documents/src/projects/android/sqlite3-android/build/sqlite3.new.c	2015-08-13 13:41:29.000000000 +0900
+***************
+*** 161621,161623 ****
+--- 161621,161725 ----
+  #endif /* SQLITE_ENABLE_DBSTAT_VTAB */
+  
+  /************** End of dbstat.c **********************************************/
++ 
++ #if !SQLITE_OS_WINRT
++ 
++ SQLITE_API void SQLITE_STDCALL sqlite3_set_temp_directory(const char *zDir)
++ {
++   int sz;
++   sqlite3_free(sqlite3_temp_directory);
++   sz = sqlite3Strlen30(zDir);
++   if (sz == 0) {
++     sqlite3_temp_directory = NULL;
++   } else {
++     sqlite3_temp_directory = sqlite3_malloc(sz+1);
++     memcpy(sqlite3_temp_directory, zDir, sz);
++     sqlite3_temp_directory[sz] = '\0';
++   }
++ }
++ 
++ #endif
++ 
++ #ifdef SQLITE_ANDROID_UNITY
++ 
++ #include <android/log.h>
++ #include <jni.h>
++ 
++ static void sqlite_android_unity_populate_temp_directory(JNIEnv *jni_env);
++ 
++ jint JNI_OnLoad(JavaVM* vm, void* reserved)
++ {
++   JNIEnv *jni_env;
++ 
++   (*vm)->AttachCurrentThread(vm, &jni_env, 0);
++   sqlite_android_unity_populate_temp_directory(jni_env);
++   return JNI_VERSION_1_6;
++ }
++ 
++ static void sqlite_android_unity_populate_temp_directory(JNIEnv *jni_env)
++ {
++   jclass cls_UnityPlayer;
++   jfieldID fid_currentActivity;
++   jobject obj_currentActivity;
++   jclass cls_Activity;
++   jmethodID mid_getCacheDir;
++   jobject obj_getCacheDir;
++   jclass cls_File;
++   jmethodID mid_getCanonicalPath;
++   jstring str_getCanonicalPath;
++   const char *cachePath;
++ 
++   cls_UnityPlayer = (*jni_env)->FindClass(jni_env, "com/unity3d/player/UnityPlayer");
++   if (!cls_UnityPlayer) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get cls_UnityPlayer");
++     return;
++   }
++   fid_currentActivity = (*jni_env)->GetStaticFieldID(jni_env, cls_UnityPlayer, "currentActivity", "Landroid/app/Activity;");
++   if (!fid_currentActivity) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get fid_currentActivity");
++     return;
++   }
++   obj_currentActivity = (*jni_env)->GetStaticObjectField(jni_env, cls_UnityPlayer, fid_currentActivity);
++   if (!obj_currentActivity) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get obj_currentActivity");
++     return;
++   }
++ 
++   cls_Activity = (*jni_env)->FindClass(jni_env, "android/app/Activity");
++   if (!cls_Activity) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get cls_Activity");
++     return;
++   }
++   mid_getCacheDir = (*jni_env)->GetMethodID(jni_env, cls_Activity, "getCacheDir", "()Ljava/io/File;");
++   if (!mid_getCacheDir) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get mid_getCacheDir");
++     return;
++   }
++   obj_getCacheDir = (*jni_env)->CallObjectMethod(jni_env, obj_currentActivity, mid_getCacheDir);
++   if (!obj_getCacheDir) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get obj_getCacheDir");
++     return;
++   }
++   cls_File = (*jni_env)->FindClass(jni_env, "java.io.File");
++   if (!cls_File) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get cls_File");
++     return;
++   }
++   mid_getCanonicalPath = (*jni_env)->GetMethodID(jni_env, cls_File, "getCanonicalPath", "()Ljava/lang/String;");
++   if (!mid_getCanonicalPath) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get mid_getCanonicalPath");
++     return;
++   }
++   str_getCanonicalPath = (jstring)(*jni_env)->CallObjectMethod(jni_env, obj_getCacheDir, mid_getCanonicalPath);
++   if (!str_getCanonicalPath) {
++     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get str_getCanonicalPath");
++     return;
++   }
++   cachePath = (*jni_env)->GetStringUTFChars(jni_env, str_getCanonicalPath, NULL);
++ 
++   sqlite3_set_temp_directory(cachePath);
++ 
++   (*jni_env)->ReleaseStringUTFChars(jni_env, str_getCanonicalPath, cachePath);
++ }
++ 
++ #endif
+
+Diff finished.  Thu Aug 13 13:42:48 2015
