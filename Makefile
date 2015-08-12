@@ -16,7 +16,7 @@ build/sqlite3.c: $(SQLITE_BASENAME).zip
 
 # Download
 $(SQLITE_BASENAME).zip:
-	wget -N -c "$(SQLITE_URL)"
+	curl -O "$(SQLITE_URL)"
 
 clean:
 	rm -f "$(SQLITE_BASENAME).zip"
