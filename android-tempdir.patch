@@ -86,7 +86,7 @@ diff -c /Users/pk-22120108/Documents/src/projects/android/sqlite3-android/build/
 +     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get obj_getCacheDir");
 +     return;
 +   }
-+   cls_File = (*jni_env)->FindClass(jni_env, "java.io.File");
++   cls_File = (*jni_env)->FindClass(jni_env, "java/io/File");
 +   if (!cls_File) {
 +     __android_log_print(ANDROID_LOG_INFO, "sqlite", "Failed to get cls_File");
 +     return;
